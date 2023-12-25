@@ -6,8 +6,8 @@ This VSCode extension, Bitrise Client, enables users to manage Bitrise build pip
 
 - **Start Builds**: Initiate Bitrise builds for the current Git branch.
   - Workflow Selection: Choose from available Bitrise workflows to start your build.
-  - ![demo](/doc/media/bitrise-client-build.gif)
-  - ![demo](/doc/media/bitrise-build-success.png)
+  - ![demo](doc/media/bitrise-client-build.gif)
+  - ![demo](doc/media/bitrise-build-success.png)
 - **Configuration Management**: Manage your Bitrise API token and application slug through VSCode settings.
 
 ## Requirements

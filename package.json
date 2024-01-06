@@ -10,6 +10,7 @@
     "type": "git",
     "url": "https://github.com/sho-hata/bitrise-client.git"
   },
+  "publisher": "sho-hata",
   "categories": [
     "Other"
   ],

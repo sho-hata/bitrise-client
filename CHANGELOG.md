@@ -7,3 +7,4 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [0.0.1] - 2023-12-25
 ### Added
 - Feature: Start Bitrise builds directly from VSCode.
+- Feature: Select workflows from available Bitrise workflows.

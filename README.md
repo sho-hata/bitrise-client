@@ -2,6 +2,8 @@
 
 This VSCode extension, Bitrise Client, enables users to manage Bitrise build pipelines directly from within Visual Studio Code. It simplifies interactions with Bitrise for continuous integration and deployment right from your code editor.
 
+market place link: https://marketplace.visualstudio.com/items?itemName=sho-hata.bitrise-client
+
 ## Features
 
 - **Start Builds**: Initiate Bitrise builds for the current Git branch.

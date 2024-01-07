@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 type BitriseClientEnvParams = {
   apiToken: string;
@@ -18,6 +18,32 @@ const getBitriseClientEnvParams = (): BitriseClientEnvParams | undefined => {
   return { apiToken, appSlug };
 };
 
+const makeBitriseApiCall = async <T>(
+  method: 'get' | 'post',
+  endpoint: string,
+  params: BitriseClientEnvParams,
+  data?: any
+): Promise<AxiosResponse<T>> => {
+  const { apiToken, appSlug } = params;
+  const url = `https://api.bitrise.io/v0.1/apps/${appSlug}${endpoint}`;
+
+  try {
+    return await axios({
+      method,
+      url,
+      headers: {
+        Authorization: `${apiToken}`,
+        'Content-Type': 'application/json',
+        accept: 'application/json',
+      },
+      data,
+    });
+  } catch (error) {
+    console.error(`Error during Bitrise API call to ${endpoint}:`, error);
+    throw new Error(`Bitrise API call failed: ${error}`);
+  }
+};
+
 export const startBitriseBuild = async ({
   branchName,
   workflowId,
@@ -27,11 +53,8 @@ export const startBitriseBuild = async ({
 }) => {
   const params = getBitriseClientEnvParams();
   if (!params) {
-    throw new Error('Please set apiToken and defaultAppSlug in settings.');
+    throw new Error('Bitrise client environment params not found.');
   }
-  const { apiToken, appSlug } = params;
-
-  const url = `https://api.bitrise.io/v0.1/apps/${appSlug}/builds`;
 
   const requestBody = {
     build_params: {
@@ -43,45 +66,19 @@ export const startBitriseBuild = async ({
     },
   };
 
-  try {
-    await axios.post(url, requestBody, {
-      headers: {
-        accept: 'application/json',
-        Authorization: `${apiToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    return;
-  } catch (error) {
-    throw new Error('Failed to start build: ' + error);
-  }
+  await makeBitriseApiCall('post', '/builds', params, requestBody);
 };
 
 export const fetchBitriseWorkflows = async (): Promise<string[]> => {
   const params = getBitriseClientEnvParams();
   if (!params) {
-    throw new Error('Please set apiToken and defaultAppSlug in settings.');
+    throw new Error('Bitrise client environment params not found.');
   }
-  const { apiToken, appSlug } = params;
 
-  const url = `https://api.bitrise.io/v0.1/apps/${appSlug}/build-workflows`;
-
-  type BitriseWorkflow = {
-    data: string[];
-  };
-
-  try {
-    const response = await axios.get<BitriseWorkflow>(url, {
-      headers: {
-        Authorization: `${apiToken}`,
-      },
-    });
-
-    const workflows = response.data.data.map((workflow: string) => workflow);
-    return workflows;
-  } catch (error) {
-    console.error('Error fetching Bitrise workflows:', error);
-    throw new Error('Failed to fetch Bitrise workflows');
-  }
+  const response = await makeBitriseApiCall<{ data: string[] }>(
+    'get',
+    '/build-workflows',
+    params
+  );
+  return response.data.data;
 };

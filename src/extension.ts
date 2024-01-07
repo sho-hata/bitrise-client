@@ -1,41 +1,11 @@
 import * as vscode from 'vscode';
 import { execSync } from 'child_process';
-import axios from 'axios';
-
-type BitriseClientEnvParams = {
-  apiToken: string;
-  appSlug: string;
-};
-
-const getBitriseClientEnvParams = (): BitriseClientEnvParams | undefined => {
-  const config = vscode.workspace.getConfiguration('bitrise-client');
-  const apiToken = config.get<string>('apiToken');
-  const appSlug = config.get<string>('defaultAppSlug');
-
-  if (!apiToken || !appSlug) {
-    return undefined;
-  }
-
-  return {
-    apiToken,
-    appSlug,
-  };
-};
+import { fetchBitriseWorkflows, startBitriseBuild } from './bitrise';
 
 export function activate(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand(
     'bitrise-client.build',
     async () => {
-      const params = getBitriseClientEnvParams();
-      if (!params) {
-        vscode.window.showErrorMessage(
-          'Please set apiToken and defaultAppSlug in settings.'
-        );
-        return;
-      }
-
-      const { apiToken, appSlug: defaultAppSlug } = params;
-
       const workspaceFolders = vscode.workspace.workspaceFolders;
       if (!workspaceFolders || workspaceFolders.length === 0) {
         vscode.window.showErrorMessage(
@@ -45,32 +15,28 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       const workspaceRoot = workspaceFolders[0].uri.fsPath;
-
       const currentBranchName = getCurrentBranchName(workspaceRoot);
-      if (!currentBranchName) {
+      if (currentBranchName === null) {
         vscode.window.showErrorMessage('No workspace folder found.');
         return;
       }
 
       try {
-        const workflows = await fetchBitriseWorkflows(defaultAppSlug, apiToken);
+        const workflows = await fetchBitriseWorkflows();
         const selectedWorkflow = await promptForWorkflow(workflows);
-
         if (!selectedWorkflow) {
           vscode.window.showErrorMessage('No workflow selected.');
           return;
         }
 
         // 現在のブランチ名を用いてビルドプロセスを開始
-        startBitriseBuild({
+        await startBitriseBuild({
           branchName: currentBranchName,
-          apiToken: apiToken,
-          appSlug: defaultAppSlug,
           workflowId: selectedWorkflow,
         });
+        vscode.window.showInformationMessage('Build started successfully!');
       } catch (error) {
-        vscode.window.showErrorMessage('Failed to fetch workflows.');
-        console.error('Error:', error);
+        vscode.window.showErrorMessage('Failed to fetch workflows:' + error);
       }
     }
   );
@@ -101,71 +67,6 @@ const getCurrentBranchName = (workspaceRoot: string): string | null => {
 
     return branchName;
   } catch (error) {
-    console.error('Error getting current branch name:', error);
     return null;
-  }
-};
-
-const fetchBitriseWorkflows = async (
-  appSlug: string,
-  apiToken: string
-): Promise<string[]> => {
-  const url = `https://api.bitrise.io/v0.1/apps/${appSlug}/build-workflows`;
-
-  type BitriseWorkflow = {
-    data: string[];
-  };
-
-  try {
-    const response = await axios.get<BitriseWorkflow>(url, {
-      headers: {
-        Authorization: `${apiToken}`,
-      },
-    });
-
-    const workflows = response.data.data.map((workflow: string) => workflow);
-    return workflows;
-  } catch (error) {
-    console.error('Error fetching Bitrise workflows:', error);
-    throw new Error('Failed to fetch Bitrise workflows');
-  }
-};
-
-export const startBitriseBuild = async ({
-  branchName,
-  apiToken,
-  appSlug,
-  workflowId,
-}: {
-  branchName: string;
-  apiToken: string;
-  appSlug: string;
-  workflowId: string;
-}) => {
-  const url = `https://api.bitrise.io/v0.1/apps/${appSlug}/builds`;
-
-  const requestBody = {
-    build_params: {
-      branch: branchName,
-      workflow_id: workflowId,
-    },
-    hook_info: {
-      type: 'bitrise',
-    },
-  };
-
-  try {
-    await axios.post(url, requestBody, {
-      headers: {
-        accept: 'application/json',
-        Authorization: `${apiToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    vscode.window.showInformationMessage('Build started successfully!');
-  } catch (error) {
-    vscode.window.showErrorMessage('Failed to start build.');
-    console.error('Failed to start build:', error);
   }
 };

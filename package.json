@@ -37,6 +37,10 @@
       {
         "command": "bitrise-client.build",
         "title": "Bitrise: Build"
+      },
+      {
+        "command": "bitrise-client.abortBuild",
+        "title": "Bitrise: Abort Build"
       }
     ]
   },

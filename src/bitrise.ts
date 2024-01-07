@@ -82,3 +82,33 @@ export const fetchBitriseWorkflows = async (): Promise<string[]> => {
   );
   return response.data.data;
 };
+
+export const fetchBitriseNotFinishedBuildSlugs = async (): Promise<
+  string[]
+> => {
+  const params = getBitriseClientEnvParams();
+  if (!params) {
+    throw new Error('Bitrise client environment params not found.');
+  }
+
+  const requestParams = {
+    status: 0,
+  };
+
+  const response = await makeBitriseApiCall<{ data: string[] }>(
+    'get',
+    '/builds',
+    params,
+    requestParams
+  );
+  return response.data.data.map((slug) => slug);
+};
+
+export const abortBitriseBuild = async (buildSlug: string) => {
+  const params = getBitriseClientEnvParams();
+  if (!params) {
+    throw new Error('Bitrise client environment params not found.');
+  }
+
+  await makeBitriseApiCall('post', `/builds/${buildSlug}/abort`, params);
+};

@@ -1,9 +1,14 @@
 import * as vscode from 'vscode';
 import { execSync } from 'child_process';
-import { fetchBitriseWorkflows, startBitriseBuild } from './bitrise';
+import {
+  abortBitriseBuild,
+  fetchBitriseNotFinishedBuildSlugs,
+  fetchBitriseWorkflows,
+  startBitriseBuild,
+} from './bitrise';
 
 export function activate(context: vscode.ExtensionContext) {
-  let disposable = vscode.commands.registerCommand(
+  const buildDisposable = vscode.commands.registerCommand(
     'bitrise-client.build',
     async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -41,7 +46,32 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  context.subscriptions.push(disposable);
+  const abortBuildDisposable = vscode.commands.registerCommand(
+    'bitrise-client.abortBuild',
+    async () => {
+      try {
+        const notFinishedBuildSlugs = await fetchBitriseNotFinishedBuildSlugs();
+        if (notFinishedBuildSlugs.length === 0) {
+          vscode.window.showInformationMessage('No build to abort.');
+          return;
+        }
+
+        const selectedBuildSlug = await promptForWorkflow(
+          notFinishedBuildSlugs
+        );
+        if (!selectedBuildSlug) {
+          vscode.window.showErrorMessage('No build selected.');
+          return;
+        }
+
+        await abortBitriseBuild(selectedBuildSlug);
+      } catch (error) {
+        vscode.window.showErrorMessage('Failed to fetch workflows:' + error);
+      }
+    }
+  );
+
+  context.subscriptions.push(buildDisposable, abortBuildDisposable);
 }
 
 export function deactivate() {}

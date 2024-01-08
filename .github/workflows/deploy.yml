@@ -17,7 +17,7 @@ jobs:
       - name: Install vsce
         run: npm install -g vsce
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
       - name: Run build
         run: vsce package
       - name: Upload artifact
